@@ -1,14 +1,18 @@
-﻿#include <iostream>
+﻿#include <boost/serialization/vector.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <sstream>
 #include <vector>
+#include <string>
 #include <winsock2.h>
-#include <WS2tcpip.h>
+#include <ws2tcpip.h>
+#include <iostream>
+#include "kinect_image.h"
 
-#pragma comment(lib, "ws2_32.lib") // 链接Winsock库
-
+// 假设 kinect_image 和 color_point_t 已经定义，并且具备序列化功能
 
 class SocketClient {
 public:
-    // 构造函数
+    // 构造函数：初始化并连接到服务器
     SocketClient(const std::string& serverAddr, int serverPort)
         : serverAddress(serverAddr), port(serverPort), socket(INVALID_SOCKET), connected(false) {
         // 初始化Winsock
@@ -18,14 +22,11 @@ public:
             std::cout << "Failed. Error Code: " << WSAGetLastError() << std::endl;
             throw std::runtime_error("Winsock initialization failed");
         }
-
-        // 连接到服务器
-        if (connectToServer()) {
-            connected = true;
-        }
+        // 尝试连接到服务器
+        connected = connectToServer();
     }
 
-    // 析构函数
+    // 析构函数：关闭socket并清理Winsock
     ~SocketClient() {
         if (socket != INVALID_SOCKET) {
             closesocket(socket);
@@ -33,7 +34,7 @@ public:
         WSACleanup();
     }
 
-    // 连接到服务器
+    // 连接到服务器的函数
     bool connectToServer() {
         // 创建socket
         socket = ::socket(AF_INET, SOCK_STREAM, 0);
@@ -42,6 +43,7 @@ public:
             return false;
         }
 
+        // 设置服务器地址
         sockaddr_in serverAddr;
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_port = htons(port);
@@ -57,20 +59,32 @@ public:
         return true;
     }
 
-    // 发送数据
-    template <typename T>
-    bool sendData(const std::vector<T>& data) {
+    // 发送 kinect_image 对象的函数
+    bool sendImage(const kinect_image& image) {
+        // 序列化 kinect_image 对象
+        std::stringstream ss;
+        boost::archive::text_oarchive oa(ss);
+        oa << image;
+        std::string serializedData = ss.str();
+        // 发送序列化后的数据
+        return sendData(serializedData);
+    }
+
+private:
+    // 发送数据的函数
+    bool sendData(const std::string& data) {
         if (!connected) {
             std::cout << "Socket is not connected" << std::endl;
             return false;
         }
 
         int totalBytesSent = 0;
-        while (totalBytesSent < data.size()) {
-            int bytesSent = send(socket, &data[totalBytesSent], data.size() - totalBytesSent, 0);
+        int dataSize = data.size();
+        // 循环发送直到所有数据被发送
+        while (totalBytesSent < dataSize) {
+            int bytesSent = send(socket, data.c_str() + totalBytesSent, dataSize - totalBytesSent, 0);
             if (bytesSent == SOCKET_ERROR) {
                 std::cout << "Send failed: " << WSAGetLastError() << std::endl;
-                // 连接断开时尝试重新连接
                 connected = connectToServer();
                 return false;
             }
@@ -81,36 +95,8 @@ public:
         return true;
     }
 
-private:
-    std::string serverAddress;
-    int port;
-    SOCKET socket;
-    bool connected;
+    std::string serverAddress; // 服务器地址
+    int port;                  // 服务器端口
+    SOCKET socket;             // socket句柄
+    bool connected;            // 连接状态标志
 };
-
-
-int main() {
-    try {
-        // 创建客户端
-        SocketClient client("localhost", 8888);
-
-        // 连接到服务器
-        if (!client.connectToServer()) {
-            std::cerr << "Failed to connect to server" << std::endl;
-            return 1;
-        }
-
-        // 发送数据
-        std::vector<char> data = { 'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd' };
-        if (!client.sendData(data)) {
-            std::cerr << "Failed to send data" << std::endl;
-            return 1;
-        }
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
-        return 1;
-    }
-
-    return 0;
-}
