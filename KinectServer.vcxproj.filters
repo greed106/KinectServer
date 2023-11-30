@@ -18,7 +18,13 @@
     <ClCompile Include="KinectClient.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="kinect_image.cpp">
+    <ClCompile Include="KinectImage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="KinectServer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -26,7 +32,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="kinect_image.h">
+    <ClInclude Include="KinectImage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="KinectServer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="KinectClient.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
