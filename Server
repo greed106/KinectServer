@@ -1,0 +1,101 @@
+#include <boost/serialization/vector.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iostream>
+#include "kinect_image.h"
+
+// 假设 kinect_image 和 color_point_t 已经定义，并且具备序列化功能
+
+class SocketServer {
+public:
+    // 构造函数：初始化并监听端口
+    SocketServer(int listenPort)
+        : port(listenPort), listenSocket(INVALID_SOCKET) {
+        // 初始化Winsock
+        WSADATA wsa;
+        std::cout << "Initializing Winsock..." << std::endl;
+        if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+            std::cout << "Failed. Error Code: " << WSAGetLastError() << std::endl;
+            throw std::runtime_error("Winsock initialization failed");
+        }
+        // 创建监听socket
+        listenSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+        if (listenSocket == INVALID_SOCKET) {
+            std::cout << "Could not create socket: " << WSAGetLastError() << std::endl;
+            throw std::runtime_error("Socket creation failed");
+        }
+        // 设置服务器地址和端口
+        sockaddr_in serverAddr;
+        serverAddr.sin_family = AF_INET;
+        serverAddr.sin_addr.s_addr = INADDR_ANY;
+        serverAddr.sin_port = htons(port);
+        // 绑定到指定地址和端口
+        if (bind(listenSocket, reinterpret_cast<struct sockaddr*>(&serverAddr), sizeof(serverAddr)) == SOCKET_ERROR) {
+            std::cout << "Bind failed: " << WSAGetLastError() << std::endl;
+            throw std::runtime_error("Socket bind failed");
+        }
+        // 开始监听连接
+        if (listen(listenSocket, SOMAXCONN) == SOCKET_ERROR) {
+            std::cout << "Listen failed: " << WSAGetLastError() << std::endl;
+            throw std::runtime_error("Socket listen failed");
+        }
+        std::cout << "Server listening on port " << port << std::endl;
+    }
+
+    // 析构函数：关闭socket并清理Winsock
+    ~SocketServer() {
+        if (listenSocket != INVALID_SOCKET) {
+            closesocket(listenSocket);
+        }
+        WSACleanup();
+    }
+
+    // 接收 kinect_image 对象的函数
+    bool receiveImage(kinect_image& image) {
+        // 等待客户端连接
+        SOCKET clientSocket = accept(listenSocket, NULL, NULL);
+        if (clientSocket == INVALID_SOCKET) {
+            std::cout << "Accept failed: " << WSAGetLastError() << std::endl;
+            return false;
+        }
+
+        // 接收数据
+        std::string receivedData;
+        char buffer[1024];
+        int bytesRead;
+        do {
+            bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+            if (bytesRead > 0) {
+                receivedData += std::string(buffer, bytesRead);
+            }
+        } while (bytesRead > 0);
+
+        // 反序列化接收到的数据
+        std::stringstream ss(receivedData);
+        boost::archive::text_iarchive ia(ss);
+        ia >> image;
+
+        std::cout << "Received data successfully" << std::endl;
+        return true;
+    }
+
+private:
+    int port;          // 监听端口
+    SOCKET listenSocket; // 监听socket句柄
+};
+
+int main() {
+    SocketServer server(12345);  // 创建服务器对象，监听端口为12345
+
+    kinect_image image;
+    if (server.receiveImage(image)) {  // 接收图像数据
+        // 处理接收到的图像数据
+        // ...
+    }
+
+    return 0;
+}
