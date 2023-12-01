@@ -7,7 +7,9 @@
 #include <sstream>
 #include <thread>
 #include <vector>
-#include "KinectImage.h" // 确保这个文件存在并包含 kinect_image 和 color_point_t 的定义
+#include <iomanip>
+#include "KinectImage.h"
+
 
 class SocketServer {
 public:
@@ -23,4 +25,4 @@ private:
     SOCKET listenSocket;
 };
 
-#endif // KINECT_SERVER_H
+#endif

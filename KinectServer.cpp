@@ -1,14 +1,7 @@
 #pragma warning(disable : 4996)
 #include "KinectServer.h"
-#include <winsock2.h>
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <thread>
-#include <vector>
-#include <ctime>
-#include <boost/serialization/vector.hpp>
-#include <boost/archive/text_iarchive.hpp>
+
+
 
 SocketServer::SocketServer(int port) : listenPort(port), listenSocket(INVALID_SOCKET) {
     WSADATA wsaData;
@@ -87,9 +80,9 @@ void SocketServer::handleClient(SOCKET clientSocket) {
         try {
             kinect_image image = receiveImage(clientSocket);
             // TODO: 处理 kinect_image 对象
-            // const std::string path = getPath();
-            // image.writeToPly(path);
-            std::cout<<"已成功接收到数据"<<std::endl;
+            const std::string path = getPath();
+            //image.writeToPly(path);
+            std::cout<<"已成功接收数据"<<std::endl;
         }
         catch (const std::exception& e) {
             std::cerr << "Error: " << e.what() << std::endl;
@@ -113,6 +106,8 @@ kinect_image SocketServer::receiveImage(SOCKET clientSocket) {
     char buffer[512];
     uint32_t totalBytesReceived = 0;
 
+
+
     while (totalBytesReceived < dataSize) {
         bytesReceived = recv(clientSocket, buffer, min(sizeof(buffer), dataSize - totalBytesReceived), 0);
         if (bytesReceived > 0) {
@@ -126,11 +121,8 @@ kinect_image SocketServer::receiveImage(SOCKET clientSocket) {
             throw std::runtime_error("Receive failed");
         }
     }
-
-    std::stringstream ss(receivedData);
-    boost::archive::text_iarchive ia(ss);
-    kinect_image image;
-    ia >> image;
+    // 反序列化
+    kinect_image image = kinect_image::deserializeFromString(receivedData);
 
     return image;
 }

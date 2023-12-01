@@ -1,9 +1,5 @@
 ﻿#include "KinectClient.h"
-#include <boost/serialization/vector.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <sstream>
-#include <iostream>
-#include <ws2tcpip.h>
+
 
 SocketClient::SocketClient(const std::string& serverAddr, int serverPort)
     : serverAddress(serverAddr), port(serverPort), socket(INVALID_SOCKET), connected(false) {
@@ -62,10 +58,7 @@ bool SocketClient::connectToServer() {
 
 
 bool SocketClient::sendImage(const kinect_image& image) {
-    std::stringstream ss;
-    boost::archive::text_oarchive oa(ss);
-    oa << image;
-    std::string serializedData = ss.str();
+    std::string serializedData = kinect_image::serializeToString(const_cast<kinect_image&>(image));
     return sendData(serializedData);
 }
 

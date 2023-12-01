@@ -4,8 +4,6 @@
 #include <string>
 #include <winsock2.h>
 #include "KinectImage.h"
-#include <boost/serialization/vector.hpp>
-#include <boost/archive/text_oarchive.hpp>
 #include <sstream>
 #include <iostream>
 #include <ws2tcpip.h>
