@@ -1,40 +1,49 @@
 #ifndef KINECT_IMAGE_H
 #define KINECT_IMAGE_H
 
-#include <fstream>
-#include <iomanip>
 #include <vector>
-#include <boost/serialization/vector.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
+#include <string>
+#include <fstream>
+#include <iostream>
+#include "yas/serialize.hpp"
+#include "yas/std_types.hpp"
 
 // 定义 color_point_t 结构体
 struct color_point_t {
     int16_t xyz[3]; // XYZ 坐标
     uint8_t rgb[3]; // RGB 颜色
-
-    template<class Archive>
-    void serialize(Archive& ar, const unsigned int version) {
-        ar& xyz;
-        ar& rgb;
-    }
 };
+
+// 为 color_point_t 提供序列化方法
+template<typename Ar>
+void serialize(Ar& ar, color_point_t& p) {
+    ar& YAS_OBJECT_NVP(
+        "color_point",
+        ("xyz", p.xyz),
+        ("rgb", p.rgb)
+    );
+}
 
 // 定义 kinect_image 类
 class kinect_image {
 public:
     std::vector<color_point_t> points;
 
-    template<class Archive>
-    void serialize(Archive& ar, const unsigned int version) {
-        ar& points;
+    // 为 kinect_image 提供序列化方法
+    template<typename Ar>
+    void serialize(Ar& ar) {
+        ar& YAS_OBJECT_NVP(
+            "kinect_image",
+            ("points", points)
+        );
     }
 
     void push(color_point_t point);
     std::vector<color_point_t> get_points();
     void writeToPly(const std::string& filename);
+    static std::string serializeToString(kinect_image& image);
+    static kinect_image deserializeFromString(const std::string& str);
+    void loadImageFromFile(const std::string& file_path, kinect_image& image);
 };
-
-BOOST_CLASS_TRACKING(kinect_image, boost::serialization::track_never)
 
 #endif // KINECT_IMAGE_H
