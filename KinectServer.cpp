@@ -81,7 +81,7 @@ void SocketServer::handleClient(SOCKET clientSocket) {
             kinect_image image = receiveImage(clientSocket);
             // TODO: 处理 kinect_image 对象
             const std::string path = getPath();
-            //image.writeToPly(path);
+            // image.writeToPly(path);
             std::cout<<"已成功接收数据"<<std::endl;
         }
         catch (const std::exception& e) {
